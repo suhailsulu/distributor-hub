@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import { Field } from '../components/form-fields/Field';
@@ -26,6 +26,14 @@ const inputClass = (hasError: boolean) =>
     }`;
 
 export default function ResetPasswordPage() {
+    return (
+        <Suspense>
+            <ResetPasswordContent />
+        </Suspense>
+    );
+}
+
+function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
 

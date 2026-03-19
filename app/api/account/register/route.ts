@@ -1,5 +1,6 @@
 import generateOTP from '@/app/lib/utilities';
 import { sendOTPEmail } from '@/app/lib/email';
+import { hashPassword } from '@/app/lib/utilities';
 import { neon } from '@neondatabase/serverless';
 
 
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
 
         const userRows = (await sql`
             INSERT INTO users (company_id, full_name, work_email, password_hash, purpose, user_status)
-            VALUES (${companyId}, ${fullName}, ${workEmail}, ${password}, ${purpose}, 'unverified')
+            VALUES (${companyId}, ${fullName}, ${workEmail}, ${await hashPassword(password)}, ${purpose}, 'unverified')
             RETURNING id, work_email, user_status;
         `) as Array<{ id: number; work_email: string; user_status: string }>;
 

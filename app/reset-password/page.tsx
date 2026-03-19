@@ -4,16 +4,19 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
 import { Field } from '../components/form-fields/Field';
+import { Toast } from '../components/utilities/Toast';
 
 const AltchaWidget = dynamic(() => import('../components/altcha/AltchaWrapper'), {
     ssr: false,
     loading: () => <p className="text-sm text-[#6f8aa8]">Loading verification...</p>,
 });
 
-type ForgotPasswordValues = {
-    email: string;
+type ResetPasswordValues = {
     altcha: string;
+    newPassword: string;
+    confirmPassword: string;
 };
 
 const inputClass = (hasError: boolean) =>
@@ -22,9 +25,18 @@ const inputClass = (hasError: boolean) =>
         : 'border-[#d6deea] focus:border-[#1377c5] focus:ring-[#1377c5]/20'
     }`;
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token');
+
     const [message, setMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [toastMessage, setToastMessage] = useState('');
+
+    const blockClipboard = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        setToastMessage('Copy & paste is disabled for security reasons.');
+    };
 
     const {
         register,
@@ -32,32 +44,48 @@ export default function ForgotPasswordPage() {
         setValue,
         clearErrors,
         formState: { errors, isSubmitting },
-    } = useForm<ForgotPasswordValues>({ mode: 'onSubmit', reValidateMode: 'onChange' });
+        watch
+    } = useForm<ResetPasswordValues>({ mode: 'onSubmit', reValidateMode: 'onChange' });
 
-    const onSubmit = async (data: ForgotPasswordValues) => {
+    const onSubmit = async (data: ResetPasswordValues) => {
         setMessage('');
         setErrorMessage('');
 
         try {
-            const response = await fetch('/api/forgot-password', {
+            const response = await fetch('/api/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: data.email, altchaToken: data.altcha }),
+                body: JSON.stringify({ newPassword: data.newPassword, confirmPassword: data.confirmPassword, altchaToken: data.altcha }),
             });
 
             const responseData = await response.json();
 
             if (!response.ok) {
-                throw new Error(responseData?.message || 'Unable to send reset link');
+                throw new Error(responseData?.message || 'Unable to reset password');
             }
 
-            setMessage(responseData?.message || 'Check your email for reset instructions.');
+            setMessage(responseData?.message || 'Your password has been reset successfully.');
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'An error occurred. Please try again.');
         }
     };
 
+    if (!token) {
+        return (
+            <main className="relative min-h-screen overflow-hidden bg-[#5aa3dd] px-4 py-8 sm:px-6 lg:px-8 flex items-center justify-center">
+                <section className="relative mx-auto w-full max-w-xl overflow-hidden rounded-3xl border border-white/40 bg-[#f6f8fc] px-6 py-8 shadow-[0_20px_40px_rgba(10,50,90,0.28)] sm:px-10 sm:py-10 text-center">
+                    <h1 className="text-2xl font-bold text-[#1a2f4c]">Link not valid</h1>
+                    <p className="mt-3 text-sm text-[#466a91]">This password reset link is invalid or has already been used. Please request a new one.</p>
+                    <Link href="/forgot-password" className="mt-6 inline-block text-sm font-semibold text-[#0f75bd] hover:underline">
+                        Request a new reset link
+                    </Link>
+                </section>
+            </main>
+        );
+    }
+
     return (
+        <>
         <main className="relative min-h-screen overflow-hidden bg-[#5aa3dd] px-4 py-8 sm:px-6 lg:px-8 flex items-center justify-center">
             <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -left-10 top-8 h-32 w-32 rotate-12 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm" />
@@ -66,21 +94,39 @@ export default function ForgotPasswordPage() {
             </div>
 
             <section className="relative mx-auto w-full max-w-xl overflow-hidden rounded-3xl border border-white/40 bg-[#f6f8fc] px-6 py-8 shadow-[0_20px_40px_rgba(10,50,90,0.28)] sm:px-10 sm:py-10">
-                <h1 className="text-3xl font-bold text-[#1a2f4c]">Forgot Password</h1>
-                <p className="mt-2 text-sm text-[#466a91]">Enter your work email and complete verification to receive a reset link.</p>
+                <h1 className="text-3xl font-bold text-[#1a2f4c]">Reset Password</h1>
+                <p className="mt-2 text-sm text-[#466a91]">Enter your new password and complete verification to reset your password.</p>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>
-                    <Field label="Work Email *" error={errors.email?.message}>
+                    <Field label="New Password *" error={errors.newPassword?.message}>
                         <input
-                            type="email"
-                            placeholder="Enter your work email"
-                            className={inputClass(!!errors.email)}
-                            {...register('email', {
-                                required: 'Work email is required.',
-                                pattern: {
-                                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                    message: 'Enter a valid email address.',
+                            type="password"
+                            placeholder="Enter your new password"
+                            className={inputClass(!!errors.newPassword)}
+                            onCopy={blockClipboard}
+                            onPaste={blockClipboard}
+                            onCut={blockClipboard}
+                            {...register('newPassword', {
+                                required: 'New password is required.',
+                                minLength: {
+                                    value: 8,
+                                    message: 'Password must be at least 8 characters long.',
                                 },
+                            })}
+                        />
+                    </Field>
+
+                    <Field label="Confirm Password *" error={errors.confirmPassword?.message}>
+                        <input
+                            type="password"
+                            placeholder="Confirm your new password"
+                            className={inputClass(!!errors.confirmPassword)}
+                            onCopy={blockClipboard}
+                            onPaste={blockClipboard}
+                            onCut={blockClipboard}
+                            {...register('confirmPassword', {
+                                required: 'Please confirm your new password.',
+                                validate: (value) => value === watch('newPassword') || 'Passwords do not match.',
                             })}
                         />
                     </Field>
@@ -117,7 +163,7 @@ export default function ForgotPasswordPage() {
                         disabled={isSubmitting}
                         className="h-11 w-full rounded-lg bg-[#0f82ca] text-sm font-semibold text-white transition hover:bg-[#0b70b0] disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                        {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                        {isSubmitting ? 'Sending...' : 'Reset Password'}
                     </button>
 
                     <p className="text-sm text-[#325377]">
@@ -129,5 +175,7 @@ export default function ForgotPasswordPage() {
                 </form>
             </section>
         </main>
+        {toastMessage ? <Toast message={toastMessage} onClose={() => setToastMessage('')} /> : null}
+        </>
     );
 }

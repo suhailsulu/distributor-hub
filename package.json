@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "@react-email/render": "^2.0.4",
     "altcha": "^2.3.0",
     "altcha-lib": "^1.4.1",
     "next": "16.2.0",

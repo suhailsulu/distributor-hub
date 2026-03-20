@@ -2,6 +2,7 @@
 
 import { Resend } from "resend";
 import { createElement, type ReactNode } from "react";
+import { render } from "@react-email/render";
 import { OTPEmailTemplate } from "../components/email/OTP-template";
 import { ForgotPasswordEmailTemplate } from "../components/email/forgot-password-template";
 import { RegistrationReceivedEmailTemplate } from "../components/email/Registration-received-template";
@@ -11,22 +12,24 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 
 async function sendEmail(to: string, subject: string, template: ReactNode) {
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'distributortesting26@gmail.com',
-            to: [to],
-            subject: subject,
-            react: template,
-        });
-
-        if (error) {
-            return Response.json({ error }, { status: 500 });
-        }
-
-        return Response.json(data);
-    } catch (error) {
-        return Response.json({ error }, { status: 500 });
+    if (!process.env.RESEND_API_KEY) {
+        throw new Error('RESEND_API_KEY is not configured');
     }
+
+    const html = await render(template);
+
+    const { data, error } = await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: ["distributortesting26@gmail.com"],
+        subject,
+        html,
+    });
+
+    if (error) {
+        throw new Error(error.message || 'Failed to send email');
+    }
+
+    return data;
 }
 
 export async function sendOTPEmail(toEmail: string, otp: string) {

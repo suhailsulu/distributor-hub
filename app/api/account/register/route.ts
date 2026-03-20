@@ -1,6 +1,7 @@
 import generateOTP from '@/app/lib/utilities';
 import { sendOTPEmail } from '@/app/lib/email';
 import { hashPassword } from '@/app/lib/utilities';
+import { verifyAltchaToken } from '@/app/lib/altcha';
 import { neon } from '@neondatabase/serverless';
 
 
@@ -13,11 +14,6 @@ type FormValues = {
     confirmPassword: string;
     altcha: string;
     acceptedTerms: boolean;
-};
-
-type AltchaVerifyResponse = {
-    isValid?: boolean;
-    error?: string;
 };
 
 export async function POST(request: Request) {
@@ -42,21 +38,9 @@ export async function POST(request: Request) {
             return Response.json({ message: 'Altcha verification is required' }, { status: 400 });
         }
 
-        const verifyUrl = new URL('/api/altcha/verify', request.url);
-        const altchaResponse = await fetch(verifyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ altcha }),
-            cache: 'no-store',
-        });
-
-        if (!altchaResponse.ok) {
-            return Response.json({ message: 'Unable to verify Altcha token' }, { status: 502 });
-        }
-
-        const verifyResult = (await altchaResponse.json()) as AltchaVerifyResponse;
+        const verifyResult = await verifyAltchaToken(altcha);
         if (!verifyResult.isValid) {
-            return Response.json({ message: 'Altcha verification failed' }, { status: 400 });
+            return Response.json({ message: verifyResult.error }, { status: verifyResult.status });
         }
 
         const databaseUrl = process.env.DATABASE_URL;
@@ -103,12 +87,13 @@ export async function POST(request: Request) {
             VALUES (${createdUser.id}, ${otp}, 'registration', ${otpExpiry});
         `;
 
-        await sendOTPEmail(workEmail, otp);
+        const emailResult = await sendOTPEmail(workEmail, otp);
 
         return Response.json(
             {
                 message: 'success',
                 user: createdUser,
+                emailResponse: emailResult,
             },
             { status: 200 }
         );
@@ -122,6 +107,9 @@ export async function POST(request: Request) {
             return Response.json({ message: 'Email is already registered' }, { status: 409 });
         }
 
-        return Response.json({ message: 'Invalid request payload' }, { status: 400 });
+        return Response.json(
+            { message: error instanceof Error ? error.message : 'Internal server error' },
+            { status: 500 }
+        );
     }
 }

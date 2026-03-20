@@ -1,15 +1,11 @@
 import { neon } from '@neondatabase/serverless';
+import { verifyAltchaToken } from '@/app/lib/altcha';
 import { verifyPassword } from '@/app/lib/utilities';
 
 type LoginBody = {
     email: string;
     password: string;
     altcha: string;
-};
-
-type AltchaVerifyResponse = {
-    isValid?: boolean;
-    error?: string;
 };
 
 type UserRow = {
@@ -32,21 +28,9 @@ export async function POST(request: Request) {
             return Response.json({ message: 'Altcha verification is required' }, { status: 400 });
         }
 
-        const verifyUrl = new URL('/api/altcha/verify', request.url);
-        const altchaResponse = await fetch(verifyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ altcha }),
-            cache: 'no-store',
-        });
-
-        if (!altchaResponse.ok) {
-            return Response.json({ message: 'Unable to verify Altcha token' }, { status: 502 });
-        }
-
-        const verifyResult = (await altchaResponse.json()) as AltchaVerifyResponse;
+        const verifyResult = await verifyAltchaToken(altcha);
         if (!verifyResult.isValid) {
-            return Response.json({ message: 'Altcha verification failed' }, { status: 400 });
+            return Response.json({ message: verifyResult.error }, { status: verifyResult.status });
         }
 
         const databaseUrl = process.env.DATABASE_URL;

@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { Field } from '../components/form-fields/Field';
 import { PasswordInput } from '../components/form-fields/PasswordInput';
+import { OtpModal } from '../components/modals/otp-modal';
 
 const AltchaWidget = dynamic(() => import('../components/altcha/AltchaWrapper'), {
     ssr: false,
@@ -39,6 +40,15 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [success, setSuccess] = useState('');
+    const [submissionError, setSubmissionError] = useState('');
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+    const [pendingEmail, setPendingEmail] = useState('');
+    const [resendCountdown, setResendCountdown] = useState(60);
+    const [resendMessage, setResendMessage] = useState('');
+    const [resendError, setResendError] = useState('');
+    const [isResendingOtp, setIsResendingOtp] = useState(false);
+    const [isFetchingCompany, setIsFetchingCompany] = useState(false);
+    const [companyLocked, setCompanyLocked] = useState(false);
 
     const {
         register,
@@ -50,13 +60,138 @@ export default function RegisterPage() {
         formState: { errors, isSubmitting },
     } = useForm<FormValues>({ mode: 'onSubmit', reValidateMode: 'onChange' });
 
-    const onSubmit = async (_data: FormValues) => {
-        await new Promise((resolve) => setTimeout(resolve, 900));
-        setSuccess('Registration request submitted. We will review and contact you shortly.');
+    useEffect(() => {
+        if (!isOtpModalOpen) {
+            setResendCountdown(60);
+            setResendMessage('');
+            setResendError('');
+            return;
+        }
+
+        if (resendCountdown <= 0) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setResendCountdown((prev) => Math.max(prev - 1, 0));
+        }, 1000);
+
+        return () => window.clearTimeout(timer);
+    }, [isOtpModalOpen, resendCountdown]);
+
+    const onSubmit = async (data: FormValues) => {
+        setSubmissionError('');
+        setSuccess('');
+
+        try {
+            await submitRegistration(data);
+            setPendingEmail(data.workEmail);
+            setResendCountdown(60);
+            setResendMessage('');
+            setResendError('');
+            setIsOtpModalOpen(true);
+        } catch (err) {
+            setSubmissionError(err instanceof Error ? err.message : 'An error occurred during registration. Please try again.');
+        }
+    };
+
+    const submitRegistration = async (data: FormValues) => {
+        const response = await fetch('/api/account/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData?.message || 'Registration failed');
+        }
+
+        return responseData;
+    };
+
+    const submitOtpVerification = async (values: { otp: string; altcha: string }) => {
+        const response = await fetch('/api/account/validateotp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: pendingEmail,
+                otp: values.otp,
+                altcha: values.altcha,
+                otp_type: 'registration',
+            }),
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData?.message || 'OTP verification failed');
+        }
+
+        setIsOtpModalOpen(false);
+        setPendingEmail('');
+        setResendCountdown(60);
+        setResendMessage('');
+        setResendError('');
+        setSuccess(responseData?.message || 'Registration request submitted. We will review your application shortly.');
         reset();
         setShowPassword(false);
         setShowConfirmPassword(false);
     };
+
+    const handleEmailBlur = async (email: string) => {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+        setIsFetchingCompany(true);
+        try {
+            const response = await fetch('/api/account/company-lookup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await response.json() as { companyName: string | null };
+            if (data.companyName) {
+                setValue('company', data.companyName, { shouldValidate: true });
+                setCompanyLocked(true);
+            }
+        } catch {
+            // silently ignore lookup errors
+        } finally {
+            setIsFetchingCompany(false);
+        }
+    };
+
+    const resendOtp = async () => {
+        if (!pendingEmail || resendCountdown > 0) {
+            return;
+        }
+
+        setIsResendingOtp(true);
+        setResendError('');
+        setResendMessage('');
+
+        try {
+            const response = await fetch('/api/account/resend-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: pendingEmail,
+                    otp_type: 'registration',
+                }),
+            });
+
+            const responseData = await response.json();
+            if (!response.ok) {
+                throw new Error(responseData?.message || 'Unable to resend OTP');
+            }
+
+            setResendCountdown(60);
+            setResendMessage(responseData?.message || 'OTP resent successfully.');
+        } catch (error) {
+            setResendError(error instanceof Error ? error.message : 'Unable to resend OTP');
+        } finally {
+            setIsResendingOtp(false);
+        }
+    };
+
 
     return (
         <main className="relative min-h-screen overflow-hidden bg-[#5aa3dd] px-4 py-8 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -90,28 +225,65 @@ export default function RegisterPage() {
                             </Field>
 
                             <Field label="Work Email *" error={errors.workEmail?.message}>
-                                <input
-                                    type="email"
-                                    placeholder="Enter your work email"
-                                    className={inputClass(!!errors.workEmail)}
-                                    {...register('workEmail', {
+                                {(() => {
+                                    const reg = register('workEmail', {
                                         required: 'Work email is required.',
                                         pattern: {
                                             value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                                             message: 'Enter a valid email address.',
                                         },
-                                    })}
-                                />
+                                    });
+                                    return (
+                                        <input
+                                            type="email"
+                                            placeholder="Enter your work email"
+                                            className={inputClass(!!errors.workEmail)}
+                                            {...reg}
+                                            onBlur={(e) => {
+                                                reg.onBlur(e);
+                                                handleEmailBlur(e.target.value);
+                                            }}
+                                            onChange={(e) => {
+                                                reg.onChange(e);
+                                                if (companyLocked) {
+                                                    setCompanyLocked(false);
+                                                    setValue('company', '');
+                                                }
+                                            }}
+                                        />
+                                    );
+                                })()}
                             </Field>
                         </div>
 
                         <Field label="Company *" error={errors.company?.message}>
-                            <input
-                                type="text"
-                                placeholder="Enter your company name"
-                                className={inputClass(!!errors.company)}
-                                {...register('company', { required: 'Company is required.' })}
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder={isFetchingCompany ? 'Fetching company details…' : 'Enter your company name'}
+                                    disabled={companyLocked || isFetchingCompany}
+                                    className={`${inputClass(!!errors.company)}${isFetchingCompany || companyLocked ? ' pr-10' : ''}${companyLocked ? ' cursor-not-allowed border-[#85b8e0] bg-[#edf5ff]' : ''}${isFetchingCompany ? ' cursor-wait' : ''}`}
+                                    {...register('company', { required: 'Company is required.' })}
+                                />
+                                {isFetchingCompany && (
+                                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                                        <span className="block h-4 w-4 animate-spin rounded-full border-2 border-[#1377c5] border-t-transparent" />
+                                    </span>
+                                )}
+                                {companyLocked && !isFetchingCompany && (
+                                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#3a7fc1]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm-3 8V6a3 3 0 116 0v3H9z" clipRule="evenodd" />
+                                        </svg>
+                                    </span>
+                                )}
+                            </div>
+                            {isFetchingCompany && (
+                                <p className="mt-1 text-xs text-[#6f8aa8]">Fetching company details from your email domain…</p>
+                            )}
+                            {companyLocked && !isFetchingCompany && (
+                                <p className="mt-1 text-xs text-[#3a7fc1]">Company auto-filled from your email domain.</p>
+                            )}
                         </Field>
 
                         <Field label="Purpose of Access *" error={errors.purpose?.message}>
@@ -204,6 +376,7 @@ export default function RegisterPage() {
                             ) : null}
                         </div>
 
+                        {submissionError ? <p className="text-sm text-red-600">{submissionError}</p> : null}
                         {success ? <p className="text-sm text-green-700">{success}</p> : null}
 
                         <button
@@ -223,6 +396,41 @@ export default function RegisterPage() {
                     </form>
                 </div>
             </section>
+
+            <OtpModal
+                isOpen={isOtpModalOpen}
+                title="Verify Your Email"
+                disableClose={true}
+                content={
+                    <div className="space-y-3">
+                        <p>
+                            Registration request submitted. Enter the OTP sent to <strong>{pendingEmail}</strong> to verify
+                            your email address and complete the application process.
+                        </p>
+                        <div className="rounded-xl border border-[#d6deea] bg-white/70 p-3 text-sm text-[#325377]">
+                            <p className="font-semibold text-[#1a2f4c]">Didn&apos;t receive the OTP?</p>
+                            <p className="mt-1">
+                                {resendCountdown > 0
+                                    ? `You can resend after ${resendCountdown} seconds.`
+                                    : 'You can resend the OTP now.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={resendOtp}
+                                disabled={resendCountdown > 0 || isResendingOtp}
+                                className="mt-3 text-sm font-semibold text-[#0f75bd] transition hover:underline disabled:cursor-not-allowed disabled:text-[#8ba3bc] disabled:no-underline"
+                            >
+                                {isResendingOtp ? 'Resending OTP...' : 'Resend OTP'}
+                            </button>
+                            {resendMessage ? <p className="mt-2 text-sm text-green-700">{resendMessage}</p> : null}
+                            {resendError ? <p className="mt-2 text-sm text-red-600">{resendError}</p> : null}
+                        </div>
+                    </div>
+                }
+                submitLabel="Verify OTP"
+                onClose={() => undefined}
+                onSubmitAction={submitOtpVerification}
+            />
         </main>
     );
 }

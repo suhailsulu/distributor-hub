@@ -1,13 +1,14 @@
-//altcha verify
-import { verifySolution } from 'altcha-lib';
+import { verifyAltchaToken } from '@/app/lib/altcha';
+
 export async function POST(request: Request) {
     const { altcha } = await request.json();
-    const key = process.env.HMAC_KEY;
-    if (!key) {
-        return new Response(JSON.stringify({ error: 'HMAC_KEY not set' }))
-    }
-    const isValid = await verifySolution(altcha, key);
-    return new Response(JSON.stringify({ isValid: isValid }), {
-        headers: { 'Content-Type': 'application/json' },
-    });
+    const result = await verifyAltchaToken(altcha);
+
+    return Response.json(
+        {
+            isValid: result.isValid,
+            error: result.error,
+        },
+        { status: result.status }
+    );
 }

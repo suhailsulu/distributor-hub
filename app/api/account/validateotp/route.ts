@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto';
 import { neon } from '@neondatabase/serverless';
 import { sendForgotPasswordEmail } from '@/app/lib/email';
+import { verifyAltchaToken } from '@/app/lib/altcha';
 
 type OtpType = 'registration' | 'password_reset';
 
@@ -23,14 +24,15 @@ function generateResetToken(userId: number): string {
 
 export async function POST(request: Request) {
     try {
-        const { email, otp, otp_type } = (await request.json()) as {
+        const { email, otp, otp_type, altcha } = (await request.json()) as {
             email: string;
             otp: string;
             otp_type: OtpType;
+            altcha: string;
         };
 
-        if (!email || !otp || !otp_type) {
-            return Response.json({ message: 'email, otp and otp_type are required' }, { status: 400 });
+        if (!email || !otp || !otp_type || !altcha) {
+            return Response.json({ message: 'email, otp, otp_type and altcha are required' }, { status: 400 });
         }
 
         if (otp_type !== 'registration' && otp_type !== 'password_reset') {
@@ -42,6 +44,10 @@ export async function POST(request: Request) {
             return Response.json({ message: 'DATABASE_URL is not configured' }, { status: 500 });
         }
 
+        const verifyResult = await verifyAltchaToken(altcha);
+        if (!verifyResult.isValid) {
+            return Response.json({ message: verifyResult.error }, { status: verifyResult.status });
+        }
         const sql = neon(databaseUrl);
 
         // 1. Lookup user by email
@@ -111,6 +117,9 @@ export async function POST(request: Request) {
         return Response.json({ message: 'Password reset link sent to your email.' }, { status: 200 });
 
     } catch (error) {
-        return Response.json({ message: 'Internal server error', error }, { status: 500 });
+        return Response.json(
+            { message: error instanceof Error ? error.message : 'Internal server error' },
+            { status: 500 }
+        );
     }
 }

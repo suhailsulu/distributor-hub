@@ -14,7 +14,7 @@ export function ForgotPasswordEmailTemplate({ email, link }: EmailTemplateProps)
                 <a href={link}>Reset Password</a>
             </p>
             <div>
-                <p>If the button does not work, copy and paste this link into your browser:</p>
+                <p>If the above link does not work, copy and paste this link into your browser:</p>
                 <p>{link}</p>
             </div>
             <p>This reset link is valid for 4 hours.</p>

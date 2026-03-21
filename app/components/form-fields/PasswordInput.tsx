@@ -1,3 +1,4 @@
+import type { ClipboardEventHandler } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 export function PasswordInput({
@@ -6,12 +7,18 @@ export function PasswordInput({
     placeholder,
     hasError,
     registration,
+    onCopy,
+    onPaste,
+    onCut,
 }: {
     isVisible: boolean;
     onToggleVisibility: () => void;
     placeholder: string;
     hasError: boolean;
     registration: UseFormRegisterReturn;
+    onCopy?: ClipboardEventHandler<HTMLInputElement>;
+    onPaste?: ClipboardEventHandler<HTMLInputElement>;
+    onCut?: ClipboardEventHandler<HTMLInputElement>;
 }) {
     const cls = `h-11 w-full rounded-lg border bg-white px-3 pr-11 text-[#1b2f49] outline-none transition focus:ring-2 ${
         hasError
@@ -25,6 +32,9 @@ export function PasswordInput({
                 type={isVisible ? 'text' : 'password'}
                 placeholder={placeholder}
                 className={cls}
+                onCopy={onCopy}
+                onPaste={onPaste}
+                onCut={onCut}
                 {...registration}
             />
             <button

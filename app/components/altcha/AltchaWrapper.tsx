@@ -7,7 +7,12 @@ interface AltchaProps {
     expireMs?: number
 }
 
-const Altcha = forwardRef<{ value: string | null }, AltchaProps>(({ onStateChange, expireMs = 6000 }, ref) => {
+export interface AltchaHandle {
+    value: string | null
+    reset: () => void
+}
+
+const Altcha = forwardRef<AltchaHandle, AltchaProps>(({ onStateChange, expireMs = 15000 }, ref) => {
     const widgetRef = useRef<AltchaWidget & AltchaWidgetMethods & HTMLElement>(null)
     const verifiedExpireTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const onStateChangeRef = useRef<AltchaProps['onStateChange']>(onStateChange)
@@ -35,14 +40,6 @@ const Altcha = forwardRef<{ value: string | null }, AltchaProps>(({ onStateChang
     useEffect(() => {
         expireMsRef.current = expireMs
     }, [expireMs])
-
-    useImperativeHandle(ref, () => {
-        return {
-            get value() {
-                return value
-            }
-        }
-    }, [value])
 
     useEffect(() => {
         const handleStateChange = (ev: Event | CustomEvent) => {
@@ -82,6 +79,19 @@ const Altcha = forwardRef<{ value: string | null }, AltchaProps>(({ onStateChang
             }
         }
     }, [])
+
+    const reset = () => {
+        widgetRef.current?.reset()
+        clearVerifiedTimer()
+        setValue(null)
+    }
+
+    useImperativeHandle(ref, () => {
+        return {
+            reset,
+            value
+        }
+    }, [value])
 
     return (
         <altcha-widget

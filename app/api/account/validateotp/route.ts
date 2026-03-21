@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { randomBytes } from 'crypto';
 import { neon } from '@neondatabase/serverless';
 import { sendForgotPasswordEmail } from '@/app/lib/email';
 import { verifyAltchaToken } from '@/app/lib/altcha';
@@ -14,12 +14,17 @@ type OtpRow = {
 
 type UserRow = { id: number };
 
-function generateResetToken(userId: number): string {
-    const hmacKey = process.env.HMAC_KEY ?? '';
-    const timestamp = Date.now();
-    const payload = `${userId}:${timestamp}`;
-    const sig = createHmac('sha256', hmacKey).update(payload).digest('hex');
-    return Buffer.from(`${payload}:${sig}`).toString('base64url');
+async function generateDBToken(sql: any): Promise<string> {
+    let token = randomBytes(32).toString('hex');
+    // ensure token is unique in db
+    while (true) {
+        const rows = (await sql`SELECT id FROM password_reset_tokens WHERE token = ${token} LIMIT 1;`) as Array<{ id: number }>;
+        if (rows.length === 0) {
+            break;
+        }
+        token = randomBytes(32).toString('hex');
+    }
+    return token;
 }
 
 export async function POST(request: Request) {
@@ -108,13 +113,17 @@ export async function POST(request: Request) {
         }
 
         // password_reset: generate signed token and send reset email
-        const resetToken = generateResetToken(userId);
+        const resetToken = await generateDBToken(sql);
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
         const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
-
+        // store the token in db so that token can be deleted once used or expired after 4 hours
+        const tokenExpiry = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours from now
+        await sql`
+            INSERT INTO password_reset_tokens (user_id, token, expires_at)
+            VALUES (${userId}, ${resetToken}, ${tokenExpiry});
+        `;
         await sendForgotPasswordEmail(email, resetLink);
-
-        return Response.json({ message: 'Password reset link sent to your email.' }, { status: 200 });
+        return Response.json({ message: 'Password reset link sent to your email. Please follow the instructions in the email to reset your password. If you do not receive the email within a few minutes, please check your spam folder or try again.' }, { status: 200 });
 
     } catch (error) {
         return Response.json(

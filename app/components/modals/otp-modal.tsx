@@ -157,7 +157,7 @@ export function OtpModal({
 						/>
 
 						<AltchaWidget
-							expireMs={6000}
+							expireMs={15000}
 							onStateChange={(ev) => {
 								if ('detail' in ev) {
 									const detail = (ev as CustomEvent<{ payload?: string; state?: string }>).detail;

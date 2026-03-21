@@ -2,9 +2,11 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Field } from '../components/form-fields/Field';
+import { OtpModal } from '../components/modals/otp-modal';
+import { AltchaHandle } from '../components/altcha/AltchaWrapper';
 
 const AltchaWidget = dynamic(() => import('../components/altcha/AltchaWrapper'), {
     ssr: false,
@@ -25,7 +27,12 @@ const inputClass = (hasError: boolean) =>
 export default function ForgotPasswordPage() {
     const [message, setMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+    const [pendingEmail, setPendingEmail] = useState('');
+    const [resendCountdown, setResendCountdown] = useState(0);
+    const [isResendingOtp, setIsResendingOtp] = useState(false);
+    const [resendMessage, setResendMessage] = useState('');
+    const [resendError, setResendError] = useState('');
     const {
         register,
         handleSubmit,
@@ -33,16 +40,35 @@ export default function ForgotPasswordPage() {
         clearErrors,
         formState: { errors, isSubmitting },
     } = useForm<ForgotPasswordValues>({ mode: 'onSubmit', reValidateMode: 'onChange' });
+    const altchaRef = useRef<AltchaHandle>(null);
+    
+    useEffect(() => {
+        if (!isOtpModalOpen) {
+            setResendCountdown(60);
+            setResendMessage('');
+            setResendError('');
+            return;
+        }
 
+        if (resendCountdown <= 0) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setResendCountdown((prev) => Math.max(prev - 1, 0));
+        }, 1000);
+
+        return () => window.clearTimeout(timer);
+    }, [isOtpModalOpen, resendCountdown]);
     const onSubmit = async (data: ForgotPasswordValues) => {
         setMessage('');
         setErrorMessage('');
 
         try {
-            const response = await fetch('/api/forgot-password', {
+            const response = await fetch('/api/account/forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: data.email, altchaToken: data.altcha }),
+                body: JSON.stringify({ email: data.email, altcha: data.altcha }),
             });
 
             const responseData = await response.json();
@@ -51,11 +77,83 @@ export default function ForgotPasswordPage() {
                 throw new Error(responseData?.message || 'Unable to send reset link');
             }
 
-            setMessage(responseData?.message || 'Check your email for reset instructions.');
+            setPendingEmail(data.email);
+            setIsOtpModalOpen(true);
+            // Start resend countdown
+            setResendCountdown(60);
+            setResendMessage('');
+            setResendError('');
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : 'An error occurred. Please try again.');
         }
     };
+    const resendOtp = async () => {
+        if (!pendingEmail || resendCountdown > 0) {
+            return;
+        }
+
+        setIsResendingOtp(true);
+        setResendError('');
+        setResendMessage('');
+
+        try {
+            const response = await fetch('/api/account/resend-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: pendingEmail,
+                    otp_type: 'password_reset',
+                }),
+            });
+
+            const responseData = await response.json();
+            if (!response.ok) {
+                throw new Error(responseData?.message || 'Unable to resend OTP');
+            }
+
+            setResendCountdown(60);
+
+            setResendMessage(responseData?.message || 'OTP resent successfully.');
+        } catch (error) {
+            setResendError(error instanceof Error ? error.message : 'Unable to resend OTP');
+        } finally {
+            setIsResendingOtp(false);
+        }
+    };
+
+
+
+    const submitOtpVerification = async (values: { otp: string; altcha: string }) => {
+        const response = await fetch('/api/account/validateotp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: pendingEmail,
+                otp: values.otp,
+                altcha: values.altcha,
+                otp_type: 'password_reset',
+            }),
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+            throw new Error(responseData?.message || 'OTP verification failed');
+        }
+
+        setIsOtpModalOpen(false);
+        setPendingEmail('');
+        setResendCountdown(60);
+        setResendMessage('');
+        setResendError('');
+        setMessage(responseData?.message || 'Password reset request submitted. Please check your email for further instructions.');
+        reset();
+    };
+    const reset = () => {
+        setValue('email', '');
+        setValue('altcha', '');
+        altchaRef.current?.reset();
+        clearErrors();
+    }
 
     return (
         <main className="relative min-h-screen overflow-hidden bg-[#5aa3dd] px-4 py-8 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -93,7 +191,7 @@ export default function ForgotPasswordPage() {
                             })}
                         />
                         <AltchaWidget
-                            expireMs={6000}
+                            expireMs={15000} ref={altchaRef}
                             onStateChange={(ev) => {
                                 if ('detail' in ev) {
                                     const detail = (ev as CustomEvent<{ payload?: string; state?: string }>).detail;
@@ -128,6 +226,40 @@ export default function ForgotPasswordPage() {
                     </p>
                 </form>
             </section>
+            <OtpModal
+                isOpen={isOtpModalOpen}
+                title="Verify Your Email"
+                disableClose={true}
+                content={
+                    <div className="space-y-3">
+                        <p>
+                            Forgot password request submitted. Enter the OTP sent to <strong>{pendingEmail}</strong> to verify
+                            your email address to receive steps for resetting your password.
+                        </p>
+                        <div className="rounded-xl border border-[#d6deea] bg-white/70 p-3 text-sm text-[#325377]">
+                            <p className="font-semibold text-[#1a2f4c]">Didn&apos;t receive the OTP?</p>
+                            <p className="mt-1">
+                                {resendCountdown > 0
+                                    ? `You can resend after ${resendCountdown} seconds.`
+                                    : 'You can resend the OTP now.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={resendOtp}
+                                disabled={resendCountdown > 0 || isResendingOtp}
+                                className="mt-3 text-sm font-semibold text-[#0f75bd] transition hover:underline disabled:cursor-not-allowed disabled:text-[#8ba3bc] disabled:no-underline"
+                            >
+                                {isResendingOtp ? 'Resending OTP...' : 'Resend OTP'}
+                            </button>
+                            {resendMessage ? <p className="mt-2 text-sm text-green-700">{resendMessage}</p> : null}
+                            {resendError ? <p className="mt-2 text-sm text-red-600">{resendError}</p> : null}
+                        </div>
+                    </div>
+                }
+                submitLabel="Verify OTP"
+                onClose={() => undefined}
+                onSubmitAction={submitOtpVerification}
+            />
         </main>
     );
 }

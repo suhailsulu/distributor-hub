@@ -220,7 +220,10 @@ export default function RegisterPage() {
                                     type="text"
                                     placeholder="Enter your full name"
                                     className={inputClass(!!errors.fullName)}
-                                    {...register('fullName', { required: 'Full name is required.' })}
+                                    {...register('fullName', {
+                                        required: 'Full name is required.',
+                                        maxLength: { value: 255, message: 'Full name must not exceed 255 characters.' },
+                                    })}
                                 />
                             </Field>
 
@@ -228,6 +231,7 @@ export default function RegisterPage() {
                                 {(() => {
                                     const reg = register('workEmail', {
                                         required: 'Work email is required.',
+                                        maxLength: { value: 254, message: 'Email must not exceed 254 characters.' },
                                         pattern: {
                                             value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                                             message: 'Enter a valid email address.',
@@ -263,7 +267,10 @@ export default function RegisterPage() {
                                     placeholder={isFetchingCompany ? 'Fetching company details…' : 'Enter your company name'}
                                     disabled={companyLocked || isFetchingCompany}
                                     className={`${inputClass(!!errors.company)}${isFetchingCompany || companyLocked ? ' pr-10' : ''}${companyLocked ? ' cursor-not-allowed border-[#85b8e0] bg-[#edf5ff]' : ''}${isFetchingCompany ? ' cursor-wait' : ''}`}
-                                    {...register('company', { required: 'Company is required.' })}
+                                    {...register('company', {
+                                        required: 'Company is required.',
+                                        maxLength: { value: 255, message: 'Company name must not exceed 255 characters.' },
+                                    })}
                                 />
                                 {isFetchingCompany && (
                                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
@@ -290,7 +297,11 @@ export default function RegisterPage() {
                             <textarea
                                 placeholder="Describe why you need access to the distributor hub"
                                 className={textareaClass(!!errors.purpose)}
-                                {...register('purpose', { required: 'Purpose of access is required.' })}
+                                {...register('purpose', {
+                                    required: 'Purpose of access is required.',
+                                    minLength: { value: 20, message: 'Please provide a more detailed purpose (at least 20 characters).' },
+                                    maxLength: { value: 1000, message: 'Purpose must not exceed 1000 characters.' },
+                                })}
                             />
                         </Field>
 
@@ -304,6 +315,12 @@ export default function RegisterPage() {
                                     registration={register('password', {
                                         required: 'Password is required.',
                                         minLength: { value: 8, message: 'Password must be at least 8 characters.' },
+                                        maxLength: { value: 20, message: 'Password must be at most 20 characters.' },
+                                        //atleast one number , uppercase, lowercase and special character validation 
+                                        pattern: {
+                                            value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+                                            message: 'Password must contain uppercase, lowercase, number, and special character.',
+                                        },
                                     })}
                                 />
                             </Field>
@@ -316,6 +333,7 @@ export default function RegisterPage() {
                                     hasError={!!errors.confirmPassword}
                                     registration={register('confirmPassword', {
                                         required: 'Please confirm your password.',
+                                        maxLength: { value: 20, message: 'Password must be at most 20 characters.' },
                                         validate: (v) => v === watch('password') || 'Passwords do not match.',
                                     })}
                                 />
@@ -331,7 +349,7 @@ export default function RegisterPage() {
                                 })}
                             />
                             <AltchaWidget
-                                expireMs={6000}
+                                expireMs={15000}
                                 onStateChange={(ev) => {
                                     if ('detail' in ev) {
                                         const detail = (ev as CustomEvent<{ payload?: string; state?: string }>).detail;

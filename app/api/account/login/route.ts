@@ -1,6 +1,9 @@
 import { neon } from '@neondatabase/serverless';
 import { verifyAltchaToken } from '@/app/lib/altcha';
 import { verifyPassword } from '@/app/lib/utilities';
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { sessionOptions, SessionData } from "@/app/lib/session";
 
 type LoginBody = {
     email: string;
@@ -13,6 +16,7 @@ type UserRow = {
     work_email: string;
     password_hash: string;
     user_status: string;
+    user_role: "user" | "admin";
 };
 
 export async function POST(request: Request) {
@@ -64,7 +68,15 @@ export async function POST(request: Request) {
         if (user.user_status === 'pending') {
             return Response.json({ message: 'Your account is pending review. You will be notified once approved.' }, { status: 403 });
         }
+        let role = user.user_role || 'user';
 
+        // Create session
+        const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+        session.userId = user.id;
+        session.email = user.work_email;
+        session.isLoggedIn = true;
+        session.role = role;
+        await session.save();
         return Response.json({ message: 'Login successful', userId: user.id }, { status: 200 });
     } catch {
         return Response.json({ message: 'Internal server error' }, { status: 500 });

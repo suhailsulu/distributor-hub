@@ -228,7 +228,7 @@ function MobileDrawer({ email, onClose, pathname, role }: { email: string; onClo
                 className="fixed inset-0 top-16 z-40 bg-[#10253d]/32 backdrop-blur-[2px] lg:hidden"
                 onClick={onClose}
             />
-            <aside className="fixed left-0 z-50 flex w-[17.5rem] flex-col border-r border-[#d7e4ef] bg-[#f7fbff] shadow-[0_24px_60px_rgba(16,37,61,0.18)] lg:hidden">
+            <aside className="fixed h-[calc(100vh)] left-0 z-50 flex w-[17.5rem] flex-col border-r border-[#d7e4ef] bg-[#f7fbff] shadow-[0_24px_60px_rgba(16,37,61,0.18)] lg:hidden">
                 <div className="flex items-center justify-between border-b border-[#d7e4ef] px-4 py-4">
                     <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#79add3]">Navigation</p>

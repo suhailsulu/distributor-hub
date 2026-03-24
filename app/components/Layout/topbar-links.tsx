@@ -3,12 +3,33 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { startTransition } from 'react';
 
 export default function TopbarLinks() {
     const pathname = usePathname();
+    const router = useRouter();
     const isRoot = pathname === '/';
     const [showLinks, setShowLinks] = useState(false);
     const toggleLinks = () => setShowLinks((prev) => !prev);
+    const handleLogout = async () => {
+        try {
+            const response = await fetch('/api/account/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData?.message || 'Logout failed');
+            }
+            startTransition(() => {
+                router.replace('/');
+                router.refresh();
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
 
     useEffect(() => {
         setShowLinks(false);
@@ -35,7 +56,7 @@ export default function TopbarLinks() {
                         <div className="flex flex-col items-center gap-4 p-2">
                             {isRoot && <Link href="/dashboard" className="text-sm text-[#1a2f4c] hover:text-[#1377c5]">Dashboard</Link>}
                             <Link href="/reset-password" className="text-sm text-[#1a2f4c] hover:text-[#1377c5]">Reset Password</Link>
-                            <Link href="/api/logout" className="text-sm text-[#1a2f4c] hover:text-[#1377c5]">Logout</Link>
+                            <div onClick={handleLogout} className="text-sm text-[#1a2f4c] hover:text-[#1377c5] cursor-pointer">Logout</div>
                         </div>
                     </div>
                 </>

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         const sql = neon(databaseUrl);
 
         const userRows = (await sql`
-            SELECT id, work_email, password_hash, user_status
+            SELECT id, work_email, password_hash, user_status, user_role
             FROM users
             WHERE work_email = ${email}
             LIMIT 1;

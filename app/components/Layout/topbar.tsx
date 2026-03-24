@@ -2,6 +2,7 @@ import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
 import { sessionOptions, type SessionData } from '@/app/lib/session';
 import TopbarLinks from './topbar-links';
+import TopbarSearchInput from '../form-fields/topbar-search-input';
 
 export default async function Topbar() {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -9,10 +10,11 @@ export default async function Topbar() {
     const email = session.email || 'User';
     if (!isLoggedIn) return null;
     return (
-        <div className="w-full border-b border-gray-200" >
-            <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center">
-                    <span className="text-lg font-bold text-[#0f75bd]">Distributor Hub</span>
+        <div className="w-full border-b border-gray-200 bg-[#eef5fb] text-[#17314d]" >
+            <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
+                <div className="flex items-center gap-4 w-full">
+                    <TopbarSearchInput></TopbarSearchInput>
+
                 </div>
                 <div className="flex items-center gap-4">
 

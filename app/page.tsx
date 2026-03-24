@@ -1,7 +1,4 @@
 import Link from 'next/link';
-import Topbar from './components/Layout/topbar';
-import { Toast } from './components/utilities/Toast';
-import ToastTest from './components/utilities/toast-test';
 
 const featureCards = [
   {
@@ -30,7 +27,7 @@ export default function Home() {
         <div className="absolute right-[-6rem] top-24 h-80 w-80 rounded-full bg-[#0f82ca]/15 blur-3xl" />
         <div className="absolute bottom-[-8rem] left-1/3 h-72 w-72 rounded-full bg-[#1a2f4c]/10 blur-3xl" />
       </div>
-      <Topbar></Topbar>
+      
       <section className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-6 py-12 sm:px-10 lg:px-16">
         <div className="grid w-full gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
@@ -61,10 +58,8 @@ export default function Home() {
               >
                 Request Access
               </Link>
-              <div>
-                <ToastTest></ToastTest>
-              </div>
-             
+
+
             </div>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-3">

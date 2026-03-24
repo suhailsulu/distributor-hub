@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { startTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { Field } from '../components/form-fields/Field';
@@ -43,7 +43,7 @@ export default function LoginPage() {
         setAuthError('');
 
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('/api/account/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -58,7 +58,10 @@ export default function LoginPage() {
                 throw new Error(errorData?.message || 'Login failed');
             }
 
-            router.push('/dashboard');
+            startTransition(() => {
+                router.replace('/dashboard');
+                router.refresh();
+            });
         } catch (err) {
             setAuthError(err instanceof Error ? err.message : 'An error occurred');
         }

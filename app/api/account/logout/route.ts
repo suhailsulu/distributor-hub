@@ -5,15 +5,15 @@ import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 
 export async function GET() {
-    // Clear the authentication cookie by setting it to an empty value and expiring it immediately
-    const session = await getIronSession(await cookies(), sessionOptions);
-    session.destroy();
-    return redirect('/login');
+  // Clear the authentication cookie by setting it to an empty value and expiring it immediately
+  const session = await getIronSession(await cookies(), sessionOptions);
+  session.destroy();
+  return redirect("/login");
 }
 
 export async function POST() {
-    const session = await getIronSession(await cookies(), sessionOptions);
-    session.destroy();
+  const session = await getIronSession(await cookies(), sessionOptions);
+  session.destroy();
 
-    return NextResponse.json({ message: 'Logout successful' }, { status: 200 });
+  return NextResponse.json({ message: "Logout successful" }, { status: 200 });
 }

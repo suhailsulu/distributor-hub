@@ -1,24 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export default function NavigationRestoreGuard() {
-    useEffect(() => {
-        const handlePageShow = (event: PageTransitionEvent) => {
-            const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-            const isBackForwardRestore = event.persisted || navigationEntry?.type === 'back_forward';
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      const navigationEntry = performance.getEntriesByType("navigation")[0] as
+        PerformanceNavigationTiming | undefined;
+      const isBackForwardRestore =
+        event.persisted || navigationEntry?.type === "back_forward";
 
-            if (isBackForwardRestore) {
-                window.location.reload();
-            }
-        };
+      if (isBackForwardRestore) {
+        window.location.reload();
+      }
+    };
 
-        window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener("pageshow", handlePageShow);
 
-        return () => {
-            window.removeEventListener('pageshow', handlePageShow);
-        };
-    }, []);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
 
-    return null;
+  return null;
 }

@@ -23,13 +23,13 @@ Distributor Hub is an asset management platform for a pharmaceutical company and
 - Each asset has a **fixed enum type** (`asset_type`) — not free-form or MIME-detected at runtime.
 - Allowed values:
 
-| Enum value | Description |
-|------------|-------------|
-| `image` | Image file (e.g. PNG, JPG) |
-| `pdf` | PDF document |
-| `link` | External website URL |
-| `youtube` | YouTube video link |
-| `excel` | Excel spreadsheet |
+| Enum value | Description                |
+| ---------- | -------------------------- |
+| `image`    | Image file (e.g. PNG, JPG) |
+| `pdf`      | PDF document               |
+| `link`     | External website URL       |
+| `youtube`  | YouTube video link         |
+| `excel`    | Excel spreadsheet          |
 
 - The **same asset can appear in multiple folders** (many-to-many relationship between assets and folders).
 
@@ -68,12 +68,12 @@ User statuses: **`unverified`**, **`pending`**, **`active`**, **`blocked`**.
 - **Block/unblock** maps to the `blocked` status (admin action).
 - `db/schema.sql` still lists `inactive` and `suspended` — migrate to `blocked` when implementing user management.
 
-| Status | Meaning |
-|--------|---------|
+| Status       | Meaning                                   |
+| ------------ | ----------------------------------------- |
 | `unverified` | Registered but email/OTP not yet verified |
-| `pending` | Verified, awaiting admin approval |
-| `active` | Approved and can use the platform |
-| `blocked` | Admin-blocked; cannot access the platform |
+| `pending`    | Verified, awaiting admin approval         |
+| `active`     | Approved and can use the platform         |
+| `blocked`    | Admin-blocked; cannot access the platform |
 
 ## Feedback Module
 
@@ -96,17 +96,17 @@ Users can submit two types of feedback:
 
 ## Product Areas (app routes)
 
-| Area | Route(s) | Purpose |
-|------|----------|---------|
-| Public / auth | `/`, `/login`, `/register`, `/forgot-password`, `/reset-password` | Landing, registration, login, password flows |
-| User workspace | `/dashboard`, `/browse`, `/search` | Authenticated distributor experience |
-| Admin | `/admin`, `/admin/users`, `/admin/distributors`, `/admin/folders`, `/admin/folders/files`, `/admin/link-asets`, `/admin/feedback` | User approval, company/folder/asset management, feedback |
+| Area           | Route(s)                                                                                                                          | Purpose                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Public / auth  | `/`, `/login`, `/register`, `/forgot-password`, `/reset-password`                                                                 | Landing, registration, login, password flows             |
+| User workspace | `/dashboard`, `/browse`, `/search`                                                                                                | Authenticated distributor experience                     |
+| Admin          | `/admin`, `/admin/users`, `/admin/distributors`, `/admin/folders`, `/admin/folders/files`, `/admin/link-asets`, `/admin/feedback` | User approval, company/folder/asset management, feedback |
 
 ## Terminology
 
-| Term in product | In codebase / DB |
-|-----------------|------------------|
-| Domain | Company (`companies` table) |
-| Distributor | User associated with a company |
-| Asset | Link/reference to external file or URL |
-| Asset type | Fixed enum on each asset (`asset_type`) |
+| Term in product | In codebase / DB                        |
+| --------------- | --------------------------------------- |
+| Domain          | Company (`companies` table)             |
+| Distributor     | User associated with a company          |
+| Asset           | Link/reference to external file or URL  |
+| Asset type      | Fixed enum on each asset (`asset_type`) |

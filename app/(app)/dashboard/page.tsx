@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getIronSession } from 'iron-session';
 import { cookies } from 'next/headers';
-import { sessionOptions, type SessionData } from '../lib/session';
+import { sessionOptions, type SessionData } from '@/app/lib/session';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {

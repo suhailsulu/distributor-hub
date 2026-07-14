@@ -3,7 +3,7 @@ interface EmailTemplateProps {
   link: string;
 }
 
-import { EmailLayout } from "./EmailLayout";
+import { EmailLayout } from "../EmailLayout";
 
 export function ForgotPasswordEmailTemplate({
   email,

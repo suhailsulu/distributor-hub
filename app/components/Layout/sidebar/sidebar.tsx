@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 import { type SessionData, sessionOptions } from "@/app/lib/session";
 
-import SidebarShell from "./sidebar-shell";
+import SidebarShell from "../sidebar-shell";
 
 export default async function Sidebar() {
   const session = await getIronSession<SessionData>(

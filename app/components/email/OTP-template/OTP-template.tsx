@@ -3,7 +3,7 @@ interface EmailTemplateProps {
   otp: string;
 }
 
-import { EmailLayout } from "./EmailLayout";
+import { EmailLayout } from "../EmailLayout";
 
 export function OTPEmailTemplate({ email, otp }: EmailTemplateProps) {
   return (

@@ -1,4 +1,4 @@
-import HomePageLinks from "./components/home page links";
+import HomePageLinks from "./components/home-page-links";
 
 const featureCards = [
   {

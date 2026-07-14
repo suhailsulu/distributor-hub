@@ -1,4 +1,4 @@
-import { EmailLayout } from "./EmailLayout";
+import { EmailLayout } from "../EmailLayout";
 
 interface RegistrationReceivedEmailTemplateProps {
   email: string;

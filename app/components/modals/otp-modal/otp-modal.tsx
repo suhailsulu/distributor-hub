@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Field } from "../form-fields/Field";
+import { Field } from "../../form-fields/Field";
 
-const AltchaWidget = dynamic(() => import("../altcha/AltchaWrapper"), {
+const AltchaWidget = dynamic(() => import("../../altcha/AltchaWrapper"), {
   ssr: false,
   loading: () => (
     <p className="text-sm text-[#6f8aa8]">Loading verification...</p>

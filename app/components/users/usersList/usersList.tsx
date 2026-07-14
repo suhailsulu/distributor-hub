@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { getUsers, partitionUsers } from "@/app/lib/usermanagement";
 import { sessionOptions, type SessionData } from "@/app/lib/session";
 
-import ExistingUsers from "./existingUsers";
-import NewUsers from "./newUsers";
+import ExistingUsers from "../existingUsers";
+import NewUsers from "../newUsers";
 
 export default async function UsersList() {
   const session = await getIronSession<SessionData>(

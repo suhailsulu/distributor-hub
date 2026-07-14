@@ -1,8 +1,8 @@
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, type SessionData } from "@/app/lib/session";
-import TopbarLinks from "./topbar-links";
-import TopbarSearchInput from "../form-fields/topbar-search-input";
+import TopbarLinks from "../topbar-links";
+import TopbarSearchInput from "../../form-fields/topbar-search-input";
 
 export default async function Topbar() {
   const session = await getIronSession<SessionData>(

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Toast } from "./Toast";
+import { Toast } from "../Toast";
 
 export default function ToastTest() {
   const [toastMessage, setToastMessage] = useState<string>("");

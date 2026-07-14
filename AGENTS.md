@@ -47,9 +47,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Continue using `react-hook-form` for form state/validation and existing shared form primitives (`Field`, `PasswordInput`, `OtpModal`).
 - Keep ALTCHA widget loaded client-side via dynamic import with `ssr: false` where used in forms.
 - Follow existing Tailwind-first styling and current UI tone/colors unless the task explicitly requests a redesign.
+- Keep each component in its own folder under `app/components/**/<ComponentName>/` with an `index.ts` barrel export and co-located unit tests (`*.test.ts` / `*.test.tsx`) in that same folder.
+- Prefer kebab-case folder names for multi-word component directories (e.g. `home-page-links`, `navigation-restore-guard`).
+
+### Testing
+
+- Use Vitest with Testing Library (`npm test`, `npm run test:coverage`).
+- Co-locate tests next to the module under test; do not create a separate top-level `__tests__` tree for components/lib.
+- Prefer `jsdom` for React components; mock Next.js / `iron-session` / network boundaries as needed.
+- After moving or renaming modules, update imports, barrels, and co-located tests in the same change.
 
 ### Code Quality
 
 - Keep types explicit for request bodies and query rows (avoid `any` unless unavoidable and tightly scoped).
 - Prefer small utility extraction in `app/lib/*` when logic is reused across multiple routes/pages.
 - Run lint checks after substantive changes and resolve issues in edited files.
+- When project structure or conventions change, update this `AGENTS.md` rule file in the same change.
+- After file moves/refactors, run `npm run format`, then `npm run format:check` and `npm run lint`, and update or add tests so `npm test` / `npm run test:coverage` stay green.

@@ -1,4 +1,4 @@
-import { EmailLayout } from "./EmailLayout";
+import { EmailLayout } from "../EmailLayout";
 
 type UserStatus = "approved" | "rejected" | "blocked" | "reactivated";
 
